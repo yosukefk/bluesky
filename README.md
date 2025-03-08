@@ -23,3 +23,6 @@ All documentation can be found under the `docs/` dir in this repo.
  - [examples](docs/examples.md)
  - [development](docs/development.md)
  - [data units](docs/data-units.md)
+
+ - [running bsd with apptainer](docs/apptainer.md)
+   
