@@ -155,8 +155,8 @@ apptainer shell \
 
 this gives `Apptainer> ` prompt which is bash prompt.  Then you can
 
-```console
-Apptainer> bsp -i /bluesky/dev/data/json/2-fires-24hr-20140530-CA.json \
+```bash
+bsp -i /bluesky/dev/data/json/2-fires-24hr-20140530-CA.json \
     fuelbeds ecoregion consumption emissions
 ```
 
