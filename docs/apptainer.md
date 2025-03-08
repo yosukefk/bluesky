@@ -119,13 +119,113 @@ instead of `-v` or `--volume` for docker, apptainer uses `--bind`.
 
 although the Docker example has `-ti` option to run intereative, i dont think it is doing anything.  bsp doesnt run interactively so that option appears to be ignored.
 
+Docker example has tailing forward shash (/) when it refers to a directory.   I belive this is redundant although it doesn't hurt to do so (i dropped)
+
 ### Using image for development
 
 There are five examples for dockers in this "using image for development section".  Will work on it with apptainer.
 
+    docker run --rm -ti --user bluesky \
+        -v $HOME/code/pnwairfire-bluesky/:/bluesky/ \
+        -e PYTHONPATH=/bluesky/ \
+        -e PATH=/bluesky/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+        bluesky bsp -h
+
+
+Equivalent command with apptainer is
+
+```bash
+apptainer run \
+    --bind $HOME/code/pnwairfire-bluesky:/bluesky \
+    --env PYTHONPATH=/bluesky \
+    --env PATH=/bluesky/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin  
+    bluesky_v4.6.14.sif bsp -h
+```
+
+i.e., use `--env` for docker's `-e`.  I actually don't understand this PYTHONPATH and PATH deal though, aren't they set by the Dockerfile?  Since it makes no visible difference for my application, drop them from the rest of example for brevity.
+
+Second example they have,
+
+    docker run --rm -ti --user bluesky \
+        -v $HOME/code/pnwairfire-bluesky/:/bluesky/ \
+        -e PYTHONPATH=/bluesky/ \
+        -e PATH=/bluesky/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+        -w /bluesky/ \
+        bluesky \
+        bsp --log-level=DEBUG --indent 4 \
+        -i ./dev/data/json/2-fires-24hr-20140530-CA.json \
+        -o ./output/{run_id}.json \
+        fuelbeds ecoregion consumption emissions
+
+For apptainer
+
+```bash
+apptainer run \
+    --bind $HOME/code/pnwairfire-bluesky:/bluesky \
+    --pwd /bluesky \
+    bluesky_v4.6.14.sif \
+    bsp --log-level=DEBUG --indent 4 \
+    -i ./dev/data/json/2-fires-24hr-20140530-CA.json \
+    -o ./output/{run_id}.json \
+    fuelbeds ecoregion consumption emissions
+```
+
+i.e., to set working directory, use `--pwd` instead of docker's `-w` or `--workdir` option
+
+Remaining example just walks through other bsp's vsmoke dispersion and HYSPLIT dispersion capabilities.  nothing spcecial for apptainer.   SO i just show translated apptiainer commands.
+
+
+vsmoke example
+```bash
+apptainer run \
+    --bind $HOME/code/pnwairfire-bluesky:/bluesky
+    --pwd /bluesky 
+    bluesky_v4.6.14.sif \
+    bsp --log-level=DEBUG --indent 4 \
+    --run-id vsmoke-1-fire-72-hr-{timestamp:%Y%m%dT%H%M%S} \
+    -i ./dev/data/json/1-fire-72hr-20140530-CA.json \
+    -o ./output/{run_id}.json  
+    -c ./dev/config/dispersion/dispersion-vsmoke-72hr.json 
+    fuelbeds ecoregion consumption emissions timeprofile dispersion
+```
+
+Two hysplit examples (not tested, still need to figure out setting up these Met repository on my machine)
+
+```bash
+apptainer run \
+    --bind $HOME/code/pnwairfire-bluesky:/bluesky \
+    --bind $HOME/Met/CANSAC/4km/ARL:/data/Met/CANSAC/4km/ARL \
+    --pwd /bluesky \ 
+    bluesky_v4.6.14.sif \
+    bsp --log-level=DEBUG --indent 4 \
+    --run-id hysplit-{timestamp:%Y%m%dT%H%M%S} \
+    -i ./dev/data/json/1-fire-24hr-20190610-CA.json \
+    -o ./output/{run_id}.json \
+    -c ./dev/config/fuelbeds-through-visualization/DRI4km-2019061012-48hr-PM2.5-grid-latlng.json \
+    fuelbeds ecoregion consumption emissions \
+    timeprofile findmetdata localmet plumerise \
+    dispersion visualization
+```
+
+```bash
+apptainer run \
+    --bind $HOME/code/pnwairfire-bluesky:/bluesky \
+    --bind $HOME/Met/PNW/4km/ARL:/data/Met/PNW/4km/ARL \
+    --pwd /bluesky \ 
+    bluesky_v4.6.14.sif \
+    bsp --log-level=DEBUG --indent 4 \
+    --run-id hysplit-{timestamp:%Y%m%dT%H%M%S} \
+    -i ./dev/data/json/2-fires-24hr-2019-07-26-WA-{timestamp:%Y%m%dT%H%M%S} \
+    -o ./output/{run_id}.json \
+    -c ./dev/config/fuelbeds-through-visualization/PNW4km-2019072600-24hr-PM2.5.json \
+    fuelbeds ecoregion consumption emissions \
+    timeprofile findmetdata localmet plumerise \
+    dispersion visualization
+```
+
 #### Apptainer wrapper script
 
-Will work on apptainer equivalent
+Will need some work to translate alll...
 
 #### Running Apptainer in interactive mode
 
@@ -146,10 +246,8 @@ Apptainer uses `shell` command instead of `run`.
 ```bash
 apptainer shell \
     --bind $HOME/code/pnwairfire-bluesky/:/bluesky/ \
-    -e PYTHONPATH=/bluesky/ \
-    -e PATH=/bluesky/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-    -v $HOME/Met/NAM/12km/ARL/:/data/Met/NAM/12km/ARL/ \
-    -w /bluesky/ \
+    --bind $HOME/Met/NAM/12km/ARL:/data/Met/NAM/12km/ARL \
+    --pwd /bluesky \
     bluesky_v4.6.14.sif
 ```
 
@@ -161,4 +259,43 @@ bsp -i /bluesky/dev/data/json/2-fires-24hr-20140530-CA.json \
 ```
 
 to run the model, and then `exit` to get out of apptainer, just like you'd log out from bash shell.
+
+### Notes about using Apptainer
+
+#### Mounted volumes
+
+Mounting directories outside of your home, that has no problem for apptainer, as long as you have permission to use the directory.  I guess the reason is that in docker you run command as root, so could be a problem for dangerous or malicious command.  Apptainer runs in your permission for there is no concern.
+
+#### Cleanup
+
+Apptainer do not create container in Docker's sense.  so no need to clean up.
+
+### Running other tools in docker
+
+#### BlueSkyKml
+
+untested
+
+```bash
+apptainer run  \
+    --bind $HOME/bluesky-output/2015121200/data/:/input/ \
+    --bind $HOME/bluesky-kml-output/:/output/ bluesky_v4.6.14.sif \
+    makedispersionkml \
+    -i /input/smoke_dispersion.nc \
+    -l /input/fire_locations.csv \
+    -e /input/fire_events.csv \
+    -o /output/
+```
+
+#### BlueSky Output Visualizer
+
+See [the output visualizer doc](output-visualizer.md)
+
+#### Other tools
+
+`/usr/local/bin` can be listed by
+
+```bash
+apptainer run bluesky_v4.6.14.sif ls /usr/local/bin
+```
 
