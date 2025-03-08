@@ -24,5 +24,7 @@ All documentation can be found under the `docs/` dir in this repo.
  - [development](docs/development.md)
  - [data units](docs/data-units.md)
 
- - [running bsd with apptainer](docs/apptainer.md)
+More doc
+ - [running bsp with apptainer](docs/apptainer.md)
+ - [running bsp with docker on PC](docs/docker_pc.md)
    
