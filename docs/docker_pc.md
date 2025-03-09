@@ -1,6 +1,12 @@
 ## Using Docker on PC to run BlueSky
 
-Docker command line works more smoothly on bash/Linux.  On windows, PowerShell would make most sense to run docker from command line.  Some syntax needs to be adjusted to do that.
+:exclamation: this page mirrors [Using Docker to run Bluesky](docker.md) page,
+so refer to the page too.
+
+Docker container is supposed to work on various platform including Windows.
+But Docker command line works more smoothly on bash/Linux.  On windows,
+PowerShell would make most sense to run docker from command line.  Some syntax
+needs to be adjusted to do that.
 
 
 Running image without a commond, this works as is.
@@ -55,7 +61,9 @@ echo '{
 bsp fuelbeds ecoregion consumption emissions --indent 4 | more
 ```
 
-run with input file, here we need trick. PowerShell has environmental variables like $pwd, but it has Windows path, and docker has hard time interpreting it.  so we have to parse it to like bash path.
+run with input file, here we need trick. PowerShell has environmental variables
+like $pwd, but it has Windows path, and docker has hard time interpreting it.
+so we have to parse it to like bash path.
 
 ```powershell
 # Function to convert windows path to what docker likes
@@ -72,9 +80,19 @@ docker run --rm -ti --user bluesky `
     fuelbeds ecoregion consumption emissions
 ```
 
-So the change is `-v $HOME/code/pnwairfire-bluesky/:/bluesky/` for docker on linux to `-v ( ( echo $HOME/code/pnwairefire=bluresky/ | docker-path ) + ':/bluesky/' )` .  it uses two pairs of parenthesis.  Original `-v` command has path on host machine, `$HOME/code/pnwairfire-bluesky/` and path wihin docker container `/bluesky/`, joined by colon `:`.   Inner parenthesis parse `$HOME` part to be compatible with docker `( echo $HOME/code/pnwairfire-bluesky/ | docker-path )` .  then the results is treated as string, and joined with remaining portion of the argument `:/bluesky/`, with plue operator.  needs single quote to treat the path as string.
+So the change is `-v $HOME/code/pnwairfire-bluesky/:/bluesky/` for docker on
+linux to `-v ( ( echo $HOME/code/pnwairefire=bluresky/ | docker-path ) + ':/bluesky/' )`.  
+it uses two pairs of parenthesis.  Original `-v` command has path on host
+machine, `$HOME/code/pnwairfire-bluesky/` and path wihin docker container
+`/bluesky/`, joined by colon `:`.   Inner parenthesis parse `$HOME` part to be
+compatible with docker `( echo $HOME/code/pnwairfire-bluesky/ | docker-path )`.
+then the results is treated as string, and joined with remaining portion of the
+argument `:/bluesky/`, with plue operator.  needs single quote to treat the
+path as string.
 
-Very ugly there would be better way but the commdna above works.  very time you want to use `-v` command, Windows side path needs to be translated with docker-path as in this example, and then joined with `+ ':/absolute/path/in/container'`
+Very ugly there would be better way but the commdna above works.  very time you
+want to use `-v` command, Windows side path needs to be translated with
+docker-path as in this example, and then joined with `+ ':/absolute/path/in/container'`
 
 ### Using image for development
 
@@ -92,13 +110,17 @@ docker run --rm -ti --user bluesky `
     bluesky bsp -h
 ```
 
-But i am not quire sure why that's needed.  Moreover, if we run python script on Windows machine (-v mounted) from docker, it has issue of text file format ("\n" for linux, "\r\n" for pc).  if we really need to have this distinction of mounted drive, work around for PC vs Linux script is needed.  for 
+But i am not quire sure why that's needed.  Moreover, if we run python script
+on Windows machine (-v mounted) from docker, it has issue of text file format
+("\n" for linux, "\r\n" for pc).  if we really need to have this distinction of
+mounted drive, work around for PC vs Linux script is needed.  for 
 
 So, instead i propose following command, ignoreing -e options to set path.  I
 also dropped `-ti` flag, that is meant to use commadn interactively.  that's
 doesnt make sense for `bsp` command, as there is no interactive use for the
 command.  i dont see the point of `--user` option so dropped it.  And tailing
-slash in path is redundant (i think), so i am dropping them for the rest of examples.
+slash in path is redundant (i think), so i am dropping them for the rest of
+examples.
 
 ```powershell
 docker run --rm `
@@ -137,7 +159,9 @@ docker run --rm `
     fuelbeds ecoregion consumption emissions timeprofile dispersion
 ```
 
-Next two are example with Hysplit.  Not confirmed for success, as I couldn't figure out how to feed met file for hysplit on my machine. `findmet` modeule fails.
+Next two are example with Hysplit.  Not confirmed for success, as I couldn't
+figure out how to feed met file for hysplit on my machine. `findmet` modeule
+fails.
 
 ```powershell
 docker run --rm `
@@ -197,7 +221,12 @@ Example tells to run command like below.
         findmetdata localmet plumerise dispersion \
         visualization export --indent 4 > out.json
 
-But above doesnt work because (1) there is no ./bin, whose aboslute path would be /bluesky/bin (2) there is no "./dev/.../DRI6km- ... -compute-grid-km.json" file.  there is "DRI6km-2014053000-24hr-PM2.5-user-defined-grid-km.json' in the same directory.  Not sure these work similarly or i am missing step to create what's in the example.   Also, findmet module is not working for me.  in any case, code below would work if you have figured out this met file dieal.
+But above doesnt work because (1) there is no ./bin, whose aboslute path would
+be /bluesky/bin (2) there is no "./dev/.../DRI6km- ... -compute-grid-km.json"
+file.  there is "DRI6km-2014053000-24hr-PM2.5-user-defined-grid-km.json' in the
+same directory.  Not sure these work similarly or i am missing step to create
+what's in the example.   Also, findmet module is not working for me.  in any
+case, code below would work if you have figured out this met file dieal.
 
 ```bash
 bsp --log-level=DEBUG \
