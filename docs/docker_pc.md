@@ -78,8 +78,12 @@ Very ugly there would be better way but the commdna above works.  very time you 
 
 ### Using image for development
 
-Next example is here
+[docker.md](docker.md) says
 
+    To use the docker image to run bluesky from your local repo, you need to
+    set PYTHONPATH and PATH variables in your docker run command.  
+
+that would be like this
 ```powershell
 docker run --rm -ti --user bluesky `
     -v ( ( echo $HOME/code/pnwairfire-bluesky/ | docker-path ) + ':/bluesky/' ) `
@@ -88,12 +92,29 @@ docker run --rm -ti --user bluesky `
     bluesky bsp -h
 ```
 
+But i am not quire sure why that's needed.  Moreover, if we run python script on Windows machine (-v mounted) from docker, it has issue of text file format ("\n" for linux, "\r\n" for pc).  if we really need to have this distinction of mounted drive, work around for PC vs Linux script is needed.  for 
+
+So, instead i propose following command, ignoreing -e options to set path.  I
+also dropped `-ti` flag, that is meant to use commadn interactively.  that's
+doesnt make sense for `bsp` command, as there is no interactive use for the
+command.  i dont see the point of `--user` option so dropped it.  And tailing
+slash in path is redundant (i think), so i am dropping them for the rest of examples.
+
 ```powershell
-docker run --rm  -ti --user bluesky `
-    -v (( echo $HOME/code/pnwairfire-bluesky/ | docker-path ) + ':/bluesky/' ) 
-    -e PYTHONPATH=/bluesky/ `
-    -e PATH=/bluesky/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin `
-    -w /bluesky/ `
+docker run --rm `
+    -v ( ( echo $HOME/code/pnwairfire-bluesky | docker-path ) + ':/bluesky' ) `
+    bluesky bsp -h
+```
+
+Similarly for the next command would be like that.   Note that `-o` option
+arguments are enclosed in single quote, because {run_id} appears to be parsed
+by PowerShell, which is not what we want.
+
+
+```powershell
+docker run --rm `
+    -v ( ( echo $HOME/code/pnwairfire-bluesky | docker-path ) + ':/bluesky' ) 
+    -w /bluesky `
     bluesky `
     bsp --log-level=DEBUG --indent 4 `
     -i ./dev/data/json/2-fires-24hr-20140530-CA.json `
@@ -101,7 +122,7 @@ docker run --rm  -ti --user bluesky `
     fuelbeds ecoregion consumption emissions
 ```
 
--ti --user -e will be dropped for the rest
+Next is example with vsmoke to estimate dispersion
 
 ```powershell
 docker run --rm `
@@ -116,10 +137,12 @@ docker run --rm `
     fuelbeds ecoregion consumption emissions timeprofile dispersion
 ```
 
+Next two are example with Hysplit.  Not confirmed for success, as I couldn't figure out how to feed met file for hysplit on my machine. `findmet` modeule fails.
+
 ```powershell
 docker run --rm `
     -v ( ( echo $HOME/code/pnwairfire-bluesky | docker-path ) + ':/bluesky' ) `
-    -v ( ( echo  $HOME/Met/CANSAC/4km/ARL | docker-path ) + ':/data/Met/CANSAC/4km/ARL' ) `
+    -v ( ( echo $HOME/Met/CANSAC/4km/ARL | docker-path ) + ':/data/Met/CANSAC/4km/ARL' ) `
     -w /bluesky `
     bluesky `
     bsp --log-level=DEBUG --indent 4 `
@@ -154,10 +177,49 @@ This most likely need editing to deal with windows path
 
 #### Running docker in interactive mode
 
+Below gives bash prompt from inside the the container.  
+
 ```powershell
 docker run --rm -ti `
     -v ( ( echo $HOME/code/pnwairfire-bluesky | docker-path ) + ':/bluesky' ) `
-    -v ( ( $HOME/Met/NAM/12km/ARL | docker-path ) + ':/data/Met/NAM/12km/ARL' )`
+    -v ( ( echo $HOME/Met/NAM/12km/ARL | docker-path ) + ':/data/Met/NAM/12km/ARL' )`
     -w /bluesky `
     bluesky bash
 ```
+
+Example tells to run command like below.
+
+
+    ./bin/bsp --log-level=DEBUG \
+        -i ./dev/data/json/2-fires-24hr-20140530-CA.json \
+        -c ./dev/config/fuelbeds-through-visualization/DRI6km-2014053000-24hr-PM2.5-compute-grid-km.json \
+        fuelbeds ecoregion consumption emissions timeprofile \
+        findmetdata localmet plumerise dispersion \
+        visualization export --indent 4 > out.json
+
+But above doesnt work because (1) there is no ./bin, whose aboslute path would be /bluesky/bin (2) there is no "./dev/.../DRI6km- ... -compute-grid-km.json" file.  there is "DRI6km-2014053000-24hr-PM2.5-user-defined-grid-km.json' in the same directory.  Not sure these work similarly or i am missing step to create what's in the example.   Also, findmet module is not working for me.  in any case, code below would work if you have figured out this met file dieal.
+
+```bash
+bsp --log-level=DEBUG \
+    -i ./dev/data/json/2-fires-24hr-20140530-CA.json \
+    -c ./dev/config/fuelbeds-through-visualization/DRI6km-2014053000-24hr-PM2.5-user-defined-grid-km.json \
+    fuelbeds ecoregion consumption emissions timeprofile \
+    findmetdata localmet plumerise dispersion \
+    visualization export --indent 4 > out.json
+```
+
+### Notes about using Docker
+
+#### Mounted volumes
+#### Cleanup
+
+These notes in [docker.md](docker.md) applies to dockers on PC as well.
+
+### Running other tools in docker
+
+#### BlueSkyKml
+#### BlueSky Output Visualizer
+#### Other tools
+
+Haven't tested yet
+
